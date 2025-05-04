@@ -1,0 +1,10 @@
+name: ${project.name}
+main: ${project.groupId}.Encounters
+description: ${project.description}
+version: ${project.version}
+depend: [cortex-core]
+author: roby08
+api-version: 1.21
+commands:
+  encounter:
+    description: Main encounter command.
