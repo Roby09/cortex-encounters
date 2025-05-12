@@ -2,9 +2,13 @@ name: ${project.name}
 main: ${project.groupId}.Encounters
 description: ${project.description}
 version: ${project.version}
-depend: [cortex-core]
+depend: [cortex-core, cortex-chat]
 author: roby08
 api-version: 1.21
 commands:
   encounter:
     description: Main encounter command.
+  attack:
+    description: Attack command for players in encounters.
+  ds:
+    description: Defensive stance command for players in encounters.
