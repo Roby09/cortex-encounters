@@ -107,7 +107,7 @@ public class Encounter {
             PlayerDamageListener.exempt.add(characterDefender.getAssignedPlayer());
             currentAttackAction.getDefender().damage(currentAttackAction.getDamageAttacker(), getAttacker());
         } else {
-            sendMessageToAll(characterAttacker.getName() + " successfully defended from " + characterDefender.getName() + "'s attack");
+            sendMessageToAll(characterDefender.getName() + " successfully defended from " + characterAttacker.getName() + "'s attack");
         }
 
         nextAttacker();

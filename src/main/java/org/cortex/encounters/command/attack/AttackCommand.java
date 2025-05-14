@@ -44,22 +44,31 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
             player.sendMessage(ChatColor.RED + "You are not the attacking player");
             return false;
         }
-        if (!(arguments.length == 2)) {
-            player.sendMessage("Correct usage: /attack <character name>");
-            return false;
-        }
         if (encounter.isAttackCompleted()) {
             player.sendMessage(ChatColor.RED + "Your attack is already over");
             return false;
         }
 
-        RpCharacter target = RpCore.getInstance().getPlayerManager().getCharacter(arguments[0] + " " + arguments[1]);
-        if (target == null) {
-            player.sendMessage(ChatColor.RED + "Character " + arguments[0] + " " + arguments[1] + " does not exist");
+        String targetName;
+
+        if (arguments.length == 2) {
+            targetName = arguments[0] + " " + arguments[1];
+        } else if (arguments.length == 1) {
+            targetName = arguments[0];
+        } else {
+            player.sendMessage("Correct usage: /attack <character name>");
             return false;
         }
+
+        RpCharacter target = RpCore.getInstance().getPlayerManager().getCharacter(targetName);
+
+        if (RpCore.getInstance().getPlayerManager().getCharacter(targetName) == null) {
+            player.sendMessage(ChatColor.RED + "Character " + targetName + " does not exist");
+            return false;
+        }
+
         if (!encounter.getPlayers().contains(target.getAssignedPlayer())) {
-            player.sendMessage(ChatColor.RED + "Character " + arguments[0] + " " + arguments[1] + " is not part of this encounter");
+            player.sendMessage(ChatColor.RED + "Character " + target + " is not part of this encounter");
             return false;
         }
         ItemStack item = player.getInventory().getItemInMainHand();
