@@ -1,6 +1,5 @@
 package org.cortex.encounters.command.attack;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,7 +13,6 @@ import org.cortex.core.player.character.RpCharacter;
 import org.cortex.core.util.RollResult;
 import org.cortex.core.util.RollSpecialtyResult;
 import org.cortex.core.util.RollUtil;
-import org.cortex.core.weapons.CustomSpell;
 import org.cortex.core.weapons.CustomWeapon;
 import org.cortex.encounters.Encounters;
 import org.cortex.encounters.encounter.AttackAction;
@@ -29,7 +27,7 @@ import org.cortex.encounters.util.WeaponDamageRoll;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AttackCommand implements CommandExecutor, TabExecutor {
+public class AttackcritCommand implements CommandExecutor, TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String label, String[] arguments) {
@@ -77,6 +75,10 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
             return false;
         }
         ItemStack item = player.getInventory().getItemInMainHand();
+        if (RpCore.getInstance().getWeaponManager().isCustomSpell(item)) {
+            player.sendMessage(ChatColor.RED + "Spell usage is not allowed with a crit attack");
+            return false;
+        }
         if (RpCore.getInstance().getWeaponManager().isCustomWeapon(item)) {
             CustomWeapon customWeapon = RpCore.getInstance().getWeaponManager().getCustomWeapon(item);
 
@@ -105,7 +107,7 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
             //Roll for damage
             String dice = customWeapon.getDamageDice();
             RollResult attackRoll = new RollResult();
-            attackRoll.setAttribute("default weapon");
+            attackRoll.setAttribute("weapon crit");
             attackRoll.setDice(dice);
             if (dice.contains("+")) {
                 String[] d = dice.split("\\+");
@@ -124,57 +126,12 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
                 dmgRoll = new WeaponDamageRoll(weaponAttribute, weaponAttribute + " + " + customWeapon.getDamageDice(), sum, damageAttributeRoll + " + " + attackRoll.getDice1Result() + " + " + attackRoll.getDice2Result());
             else
                 dmgRoll = new WeaponDamageRoll(weaponAttribute, weaponAttribute + " + " + customWeapon.getDamageDice(), sum, damageAttributeRoll + " + " + attackRoll.getDice1Result());
-            AttackAction attackAction = new AttackAction(player, target.getAssignedPlayer(), successRoll.getResult(), attackRoll.getResult()+damageAttributeRoll, attackRoll);
+
+            EnChatUtil.sendRollCritWeaponSuccessMessage(character, target, successRoll, encounter.getAllPlayers());
+            AttackAction attackAction = new AttackAction(player, target.getAssignedPlayer(), successRoll.getResult(), (int) ((attackRoll.getResult()+damageAttributeRoll)*1.5), attackRoll);
             attackAction.setWeaponDamageRoll(dmgRoll);
-
-            EnChatUtil.sendRollSpecialWeaponSuccessMessage(character, target, successRoll, encounter.getAllPlayers());
+            attackAction.setCrit(true);
             encounter.setCurrentAttackAction(attackAction);
-        } else if (RpCore.getInstance().getWeaponManager().isCustomSpell(item)) {
-            CustomSpell spell = RpCore.getInstance().getWeaponManager().getCustomSpell(item);
-
-            if (player.getLocation().distance(target.getAssignedPlayer().getLocation()) > spell.getRange()+0.5) {
-                player.sendMessage(ChatColor.RED + target.getName() + " is out of range for this weapon!");
-                return false;
-            }
-
-            //Roll for success of attack
-            RollSpecialtyResult specialtyResult = character.getSpecialtySkills().roll(spell.getSpecialtySkill(), character.getSpecialtySkills().getSpecialtySkill(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentGeneralSkillName(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentAttributeName(spell.getSpecialtySkill()), character);
-
-            //Roll for damage
-            String dice = spell.getDamageDice();
-            RollResult attackRoll = new RollResult();
-            attackRoll.setAttribute("spell");
-            attackRoll.setDice(dice);
-            if (dice.contains("+")) {
-                String[] d = dice.split("\\+");
-                int d1 = RollUtil.rollDie(Integer.parseInt(d[0].replace("d", "")));
-                int d2 = RollUtil.rollDie(Integer.parseInt(d[1].replace("d", "")));
-                attackRoll.setDice1Result(d1);
-                attackRoll.setDice2Result(d2);
-            } else {
-                int d1 = RollUtil.rollDie(Integer.parseInt(dice.replace("d", "")));
-                attackRoll.setDice1Result(d1);
-            }
-
-            //ATTACK here if spell has opponent specialty skill
-            if (spell.getOpponentSpecialty() != null) {
-                RollSpecialtyResult attackSpecialtyResult = target.getSpecialtySkills().roll(spell.getOpponentSpecialty(), target.getSpecialtySkills().getSpecialtySkill(spell.getOpponentSpecialty()), target.getSpecialtySkills().getParentGeneralSkillName(spell.getOpponentSpecialty()), target.getSpecialtySkills().getParentAttributeName(spell.getOpponentSpecialty()), target);
-                encounter.setCurrentAttackAction(new AttackAction(player, target.getAssignedPlayer(), specialtyResult.getResult(), attackRoll.getResult(), attackRoll));
-                encounter.getCurrentAttackAction().setDefensiveRoll(attackSpecialtyResult.getResult());
-                encounter.getCurrentAttackAction().setCustomSpell(spell);
-                EnChatUtil.sendRollForcedSpecialtySpellSuccessMessage(character, target, spell.getOpponentSpecialty(), specialtyResult, encounter.getAllPlayers());
-                attack(target.getAssignedPlayer(), encounter, attackSpecialtyResult);
-                //ELSE open defense action menu like normal
-            } else {
-                EnChatUtil.sendRollSpellSuccessMessage(character, target, specialtyResult, encounter.getAllPlayers());
-                encounter.setCurrentAttackAction(new AttackAction(player, target.getAssignedPlayer(), specialtyResult.getResult(), attackRoll.getResult(), attackRoll));
-                encounter.getCurrentAttackAction().setCustomSpell(spell);
-
-                ActionMenuListener.playersInMenu.add(target.getAssignedPlayer());
-                target.getAssignedPlayer().openInventory(new ActionInventory().getInventory());
-            }
-            encounter.setAttackCompleted(true);
-            return true;
         } else {
             if (player.getLocation().distance(target.getAssignedPlayer().getLocation()) > 2.5) {
                 player.sendMessage(ChatColor.RED + target.getName() + " is out of range for this attack! The default range is 2 blocks.");
@@ -187,34 +144,22 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
             int athletics = RollUtil.roll(character.getGeneralSkills().athletics);
             RollResult rollResult = new RollResult(null, "agility + athletics", dice, agility, athletics);
 
-            EnChatUtil.sendRollFistSuccessMessage(character, target, rollResult, encounter.getAllPlayers());
+            EnChatUtil.sendRollCritFistSuccessMessage(character, target, rollResult, encounter.getAllPlayers());
 
             //Roll for damage
             String diceDmg = RollUtil.getDice(character.getAttributes().strength);
             int strength = RollUtil.roll(character.getAttributes().strength);
             //int melee = RollUtil.roll(character.getGeneralSkills().melee);
-            RollResult rollResultDmg = new RollResult("default", "strength", diceDmg, strength, 0);
+            RollResult rollResultDmg = new RollResult("default crit","strength", diceDmg, strength, 0);
 
-            encounter.setCurrentAttackAction(new AttackAction(player, target.getAssignedPlayer(), rollResult.getResult(), rollResultDmg.getResult(), rollResultDmg));
+            AttackAction attackAction = new AttackAction(player, target.getAssignedPlayer(), rollResult.getResult(), (int) (rollResultDmg.getResult()*1.5), rollResultDmg);
+            attackAction.setCrit(true);
+            encounter.setCurrentAttackAction(attackAction);
         }
         ActionMenuListener.playersInMenu.add(target.getAssignedPlayer());
         target.getAssignedPlayer().openInventory(new ActionInventory().getInventory());
         encounter.setAttackCompleted(true);
         return true;
-    }
-
-    private void attack(Player player, Encounter encounter, RollSpecialtyResult rollSpecialtyResult) {
-        RpCharacter  character = RpCore.getInstance().getPlayerManager().getRpPlayer(player).getCharacter();
-
-        if (encounter.getDefensiveStance().contains(player)) {
-            encounter.getCurrentAttackAction().setDefensiveRoll(rollSpecialtyResult.getResult() + 2);
-            EnChatUtil.sendDefenseForcedSpellMessage(character, rollSpecialtyResult, true, 0, encounter.getAllPlayers());
-            encounter.getDefensiveStance().remove(player);
-        } else {
-            encounter.getCurrentAttackAction().setDefensiveRoll(rollSpecialtyResult.getResult());
-            EnChatUtil.sendDefenseForcedSpellMessage(character, rollSpecialtyResult, false, 0, encounter.getAllPlayers());
-        }
-        encounter.completeAttackAction();
     }
 
     @Override

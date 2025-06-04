@@ -10,5 +10,11 @@ commands:
     description: Main encounter command.
   attack:
     description: Attack command for players in encounters.
+  attackthrow:
+    description: Weapon throw attack command for players in encounters.
+  attackcrit:
+    description: Weapon throw attack command for players in encounters.
   ds:
+    description: Defensive stance command for players in encounters.
+  dash:
     description: Defensive stance command for players in encounters.

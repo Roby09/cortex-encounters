@@ -31,7 +31,7 @@ public class PlayerQuitAndRejoinListener implements Listener {
         RpCharacter character = RpCore.getInstance().getPlayerManager().getRpPlayer(player).getCharacter();
         encounter.sendMessageToAll(character.getName() + " left the server, they will rejoin the encounter if they reconnect");
         if (encounter.getAttacker() == player && !encounter.isAttackCompleted()) {
-            encounter.nextAttacker();
+            encounter.nextAttacker(false);
         }
         if (encounter.getPlayers().contains(player))
             leftPlayer.put(player.getUniqueId(), encounter);

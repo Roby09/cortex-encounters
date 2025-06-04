@@ -6,23 +6,17 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.cortex.core.RpCore;
 import org.cortex.core.player.RpPlayer;
 import org.cortex.core.player.character.RpCharacter;
-import org.cortex.core.util.RollUtil;
-import org.cortex.core.weapons.CustomWeapon;
 import org.cortex.encounters.Encounters;
-import org.cortex.encounters.encounter.AttackAction;
 import org.cortex.encounters.encounter.Encounter;
 import org.cortex.encounters.encounter.EncounterManager;
-import org.cortex.encounters.gui.ActionInventory;
-import org.cortex.encounters.listener.ActionMenuListener;
+import org.cortex.encounters.listener.MovementListener;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class DsCommand implements CommandExecutor, TabExecutor {
+public class DashCommand implements CommandExecutor, TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String label, String[] arguments) {
@@ -42,18 +36,26 @@ public class DsCommand implements CommandExecutor, TabExecutor {
             player.sendMessage(ChatColor.RED + "You are not the attacking player");
             return false;
         }
-        if (encounter.getDefensiveStance().contains(player)) {
-            player.sendMessage(ChatColor.RED + "You can not choose the defensive stance twice");
+        if (arguments.length == 1 && arguments[0].equalsIgnoreCase("pass")) {
+            if (MovementListener.dash.contains(player)) {
+                MovementListener.dash.remove(player);
+                encounter.sendMessage(player, "Turn passed");
+                encounter.setAttackCompleted(true);
+                encounter.nextAttacker(false);
+            } else {
+                player.sendMessage(ChatColor.RED + "You have not enabled a dash");
+            }
             return false;
         }
-        if (encounter.isAttackCompleted()) {
+        if (MovementListener.dash.contains(player)) {
             player.sendMessage(ChatColor.RED + "Your attack is already over");
             return false;
         }
-        encounter.getDefensiveStance().add(player);
-        encounter.setAttackCompleted(true);
-        encounter.sendMessageToAll(character.getName() + " chose the defensive stance");
-        encounter.nextAttacker(false);
+        int extraPoints = (character.getAttributes().agility + character.getGeneralSkills().athletics + 3);
+        MovementListener.moveMap.put(player.getUniqueId(), MovementListener.moveMap.get(player.getUniqueId())+extraPoints);
+        MovementListener.dash.add(player);
+        encounter.sendMessageToAll(character.getName() + " chose to dash and gets double movement points");
+        encounter.sendMessage(player, "You can not attack while dashing. Your turn will pass if you use all your movement points or if you type /dash pass");
         return true;
     }
 
