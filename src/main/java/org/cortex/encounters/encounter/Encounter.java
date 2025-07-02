@@ -2,21 +2,22 @@ package org.cortex.encounters.encounter;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 import org.cortex.core.RpCore;
 import org.cortex.core.player.character.RpCharacter;
 import org.cortex.core.scoreboard.GameScoreboard;
+import org.cortex.core.util.AnimationUtil;
 import org.cortex.core.util.RollResult;
+import org.cortex.core.weapons.CustomArmor;
 import org.cortex.core.weapons.SpellType;
 import org.cortex.encounters.Encounters;
 import org.cortex.encounters.listener.MovementListener;
-import org.cortex.encounters.listener.PlayerDamageListener;
 import org.cortex.encounters.util.EnChatUtil;
 import org.cortex.rpchat.util.ChatUtil;
 
@@ -117,24 +118,46 @@ public class Encounter {
         getCurrentAttackAction().setFinished(true);
         RpCharacter characterAttacker = RpCore.getInstance().getPlayerManager().getRpPlayer(currentAttackAction.getAttacker()).getCharacter();
         RpCharacter characterDefender = RpCore.getInstance().getPlayerManager().getRpPlayer(currentAttackAction.getDefender()).getCharacter();
+
+        int armorDamageReduction = 0;
+        int armorLaborCost = 0;
+        if (currentAttackAction.getDefender().getInventory().getBoots() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getBoots())) {
+            CustomArmor armor = RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getBoots());
+            armorDamageReduction = armorDamageReduction + armor.getDamageReduction();
+            armorLaborCost = armorLaborCost + armor.getLabourCost();
+        }
+        if (currentAttackAction.getDefender().getInventory().getLeggings() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getLeggings())) {
+            CustomArmor armor = RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getLeggings());
+            armorDamageReduction = armorDamageReduction + armor.getDamageReduction();
+            armorLaborCost = armorLaborCost + armor.getLabourCost();
+        }
+        if (currentAttackAction.getDefender().getInventory().getChestplate() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getChestplate())) {
+            CustomArmor armor = RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getChestplate());
+            armorDamageReduction = armorDamageReduction + armor.getDamageReduction();
+            armorLaborCost = armorLaborCost + armor.getLabourCost();
+        }
+        if (currentAttackAction.getDefender().getInventory().getHelmet() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getHelmet())) {
+            CustomArmor armor = RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getHelmet());
+            armorDamageReduction = armorDamageReduction + armor.getDamageReduction();
+            armorLaborCost = armorLaborCost + armor.getLabourCost();
+        }
+
+        //Bypass armor reduction with spell attacks
+        if (currentAttackAction.getCustomSpell() != null) {
+            armorDamageReduction = 0;
+            armorLaborCost = 0;
+        }
+
         if (currentAttackAction.getDamageSuccessRoll() > currentAttackAction.getDefensiveRoll()) {
             //sendMessageToAll(characterAttacker.getName() + " successfully attacked " + characterDefender.getName());
             EnChatUtil.sendRollAttackMessage(currentAttackAction, characterAttacker, characterDefender, currentAttackAction.getDamageRollResult(), currentAttackAction.getWeaponDamageRoll(), getAllPlayers());
-            PlayerDamageListener.allowNextDamage(characterDefender.getAssignedPlayer());
+            //PlayerDamageListener.allowNextDamage(characterDefender.getAssignedPlayer());
 
-            int armorDamageReduction = 0;
-            if (currentAttackAction.getDefender().getInventory().getBoots() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getBoots()))
-                armorDamageReduction = armorDamageReduction + RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getBoots()).getDamageReduction();
-            if (currentAttackAction.getDefender().getInventory().getLeggings() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getLeggings()))
-                armorDamageReduction = armorDamageReduction + RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getLeggings()).getDamageReduction();
-            if (currentAttackAction.getDefender().getInventory().getChestplate() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getChestplate()))
-                armorDamageReduction = armorDamageReduction + RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getChestplate()).getDamageReduction();
-            if (currentAttackAction.getDefender().getInventory().getHelmet() != null && RpCore.getInstance().getWeaponManager().isCustomArmor(currentAttackAction.getDefender().getInventory().getHelmet()))
-                armorDamageReduction = armorDamageReduction + RpCore.getInstance().getWeaponManager().getCustomArmor(currentAttackAction.getDefender().getInventory().getHelmet()).getDamageReduction();
-
-            //Bypass armor reduction with spell attacks
-            if (currentAttackAction.getCustomSpell() != null)
+            /*if (!characterDefender.transaction(armorLaborCost, true)) {
+                currentAttackAction.getDefender().sendMessage(ChatColor.RED + "Not enough labor points for worn armor. You need " + armorLaborCost + " and have " + characterAttacker.getLaborPoints());
+                currentAttackAction.getDefender().sendMessage(ChatColor.RED + "Removing armor protection");
                 armorDamageReduction = 0;
+            }*/
 
             if (currentAttackAction.getCustomSpell() != null && currentAttackAction.getCustomSpell().getSpellType() == SpellType.HEAL) {
                 double currentHealth = currentAttackAction.getDefender().getHealth();
@@ -143,7 +166,8 @@ public class Encounter {
                 currentAttackAction.getDefender().setHealth(Math.min(newHealth, maxHealth));
             } else if (currentAttackAction.getDamageRoll() > armorDamageReduction) {
                 int finalDamage = currentAttackAction.getDamageRoll() - armorDamageReduction;
-                currentAttackAction.getDefender().damage(finalDamage, getAttacker());
+                //currentAttackAction.getDefender().damage(finalDamage, getAttacker());
+                damage(currentAttackAction.getDefender(), currentAttackAction.getAttacker(), finalDamage);
                 if (currentAttackAction.getCustomSpell() == null && armorDamageReduction > 0)
                  sendMessageToAll(characterDefender.getName() + " wears armor (" + armorDamageReduction + ") and takes " + finalDamage + " damage");
             } else if (currentAttackAction.getCustomSpell() == null && armorDamageReduction > 0) {
@@ -159,7 +183,7 @@ public class Encounter {
         } else {
             sendMessageToAll(characterDefender.getName() + " successfully defended from " + characterAttacker.getName() + "'s attack");
         }
-
+        checkLaborDeath(characterDefender.getAssignedPlayer(), characterDefender.transaction(armorLaborCost, true));
         nextAttacker(false);
     }
 
@@ -278,8 +302,47 @@ public class Encounter {
         }
     }
 
+    private void damage(Player damaged, Player damager, int damage) {
+        AnimationUtil.playHurtAnimation(damaged);
+        // Play hurt sound
+        damaged.getWorld().playSound(damaged.getLocation(), Sound.ENTITY_PLAYER_HURT, 1.0f, 1.0f);
+        // Apply knockback
+        Vector knockback = damaged.getLocation().toVector().subtract(attacker.getLocation().toVector()).normalize().multiply(0.5);
+        knockback.setY(0.4);
+        damaged.setVelocity(knockback);
+        // tiny fake damage to trigger visual
+        damaged.damage(0.01, attacker); // won't kill or do real damage
+
+        if (damage >= damaged.getHealth()) {
+            RpCharacter defender = RpCore.getInstance().getPlayerManager().getRpPlayer(damaged).getCharacter();
+            RpCharacter attacker = RpCore.getInstance().getPlayerManager().getRpPlayer(damager).getCharacter();
+            sendMessageToAll(defender.getName() + " was slain in combat by " + attacker.getName());
+            setDeadPlayer(damaged);
+            updateScoreboard();
+            RpCore.getInstance().getPlayerManager().getRpPlayer(damaged).getCharacter().down();
+        } else {
+            double health = damaged.getHealth();
+            damaged.setHealth(Math.max(0, health - damage));
+        }
+    }
+
+    public void checkLaborDeath(Player player, boolean laborSucceed) {
+        if (!players.contains(player)) return;
+        if (!laborSucceed) {
+            RpCharacter rpCharacter = RpCore.getInstance().getPlayerManager().getRpPlayer(player).getCharacter();
+            sendMessageToAll(rpCharacter.getName() + " died due to running out of labor points");
+            setDeadPlayer(player);
+            updateScoreboard();
+            rpCharacter.down();
+        }
+    }
+
     public void setGameState(GameState gameState) {
         this.gameState = gameState;
+    }
+
+    public void setAttackTurn(int attackTurn) {
+        this.attackTurn = attackTurn;
     }
 
     public void setPassTimer(BukkitTask passTimer) {
@@ -305,6 +368,10 @@ public class Encounter {
 
     public void setAttackCompleted(boolean attackCompleted) {
         this.attackCompleted = attackCompleted;
+        if (attackCompleted && passTimer != null) {
+            passTimer.cancel();
+            setPassTimer(null);
+        }
     }
 
     public void setCurrentAttackAction(AttackAction currentAttackAction) {
@@ -356,6 +423,10 @@ public class Encounter {
         return gameState;
     }
 
+    public int getAttackTurn() {
+        return attackTurn;
+    }
+
     public Player getAttacker() {
         return attacker;
     }
@@ -393,5 +464,4 @@ public class Encounter {
 
         return sb.toString();
     }
-
 }

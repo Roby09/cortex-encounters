@@ -46,6 +46,10 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
                 player.sendMessage(ChatColor.RED + "You are already in an encounter. You must leave the current encounter first.");
                 return false;
             }
+            if (!(arguments.length > 1)) {
+                player.sendMessage(ChatColor.RED + "Encounter name can not be empty.");
+                return false;
+            }
 
             StringBuilder sb = new StringBuilder();
             String[] args = Arrays.copyOfRange(arguments, 1, arguments.length);
@@ -120,19 +124,21 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
             }
             Encounter encounter = Encounters.getInstance().getEncounterManager().getEncounter(player);
 
-            boolean canLeave = true;
-            for (Player player_ : encounter.getPlayers()) {
-                if (player != player_ && player.getLocation().distance(player_.getLocation()) <= 20)
-                    canLeave = false;
-            }
+            if (encounter.getGameState() != GameState.WAITING) {
+                boolean canLeave = true;
+                for (Player player_ : encounter.getPlayers()) {
+                    if (player != player_ && player.getLocation().distance(player_.getLocation()) <= 20)
+                        canLeave = false;
+                }
 
-            if (!canLeave) {
-                player.sendMessage(ChatColor.RED + "You are too close to another player in this encounter. You must be at least 20 blocks away from any player.");
-                return false;
-            }
-            if (encounter.getAttacker() != player) {
-                player.sendMessage(ChatColor.RED + "You can only leave an encounter when it's your turn.");
-                return false;
+                if (!canLeave) {
+                    player.sendMessage(ChatColor.RED + "You are too close to another player in this encounter. You must be at least 20 blocks away from any player.");
+                    return false;
+                }
+                if (encounter.getAttacker() != player) {
+                    player.sendMessage(ChatColor.RED + "You can only leave an encounter when it's your turn.");
+                    return false;
+                }
             }
 
             encounter.removePlayer(player);
@@ -145,6 +151,10 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
                 return false;
             }
             Encounter encounter = Encounters.getInstance().getEncounterManager().getEncounter(player);
+            if (encounter.getGameState() == GameState.ENDING) {
+                player.sendMessage(ChatColor.RED + "Encounter is already ending");
+                return false;
+            }
             encounter.endCountdown();
         } else if (arguments[0].equalsIgnoreCase("info")) {
             player.sendMessage(ChatColor.BLUE + "" + ChatColor.UNDERLINE + "________ Encounter Info ________");
@@ -193,7 +203,11 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
             }
             Encounter encounter = Encounters.getInstance().getEncounterManager().getEncounter(player);
             if (encounter.getGameState() != GameState.STARTED) {
-                player.sendMessage(ChatColor.RED + "Encounter is has not started or is ending.");
+                player.sendMessage(ChatColor.RED + "Encounter has not started or is ending.");
+                return false;
+            }
+            if (encounter.getPassTimer() != null) {
+                player.sendMessage(ChatColor.RED + "A pass turn has already been initiated");
                 return false;
             }
             if (encounter.isAttackCompleted() || MovementListener.dash.contains(encounter.getAttacker())) {
@@ -209,6 +223,10 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
                 return false;
             }
             Encounter encounter = Encounters.getInstance().getEncounterManager().getEncounter(player);
+            if (player != encounter.getAttacker()) {
+                player.sendMessage(ChatColor.RED + "Only the attacker can use this command");
+                return false;
+            }
             if (encounter.getPassTimer() == null) {
                 player.sendMessage(ChatColor.RED + "A turn pass has not been initiated");
                 return false;
@@ -239,12 +257,19 @@ public class EncounterCommand implements CommandExecutor, TabExecutor {
                 player.sendMessage(ChatColor.RED + "Character " + targetName + " does not exist");
                 return false;
             }
+
+            Encounter encounter = Encounters.getInstance().getEncounterManager().getEncounter(target.getAssignedPlayer());
             if (!Encounters.getInstance().getEncounterManager().isInEncounter(target.getAssignedPlayer())) {
                 player.sendMessage(ChatColor.RED + target.getName() + " is not in an encounter");
                 return false;
             }
 
-            Encounters.getInstance().getEncounterManager().getEncounter(target.getAssignedPlayer()).removePlayer(target.getAssignedPlayer());
+            //Set attack turn -1 else next player will be skipped
+            encounter.setAttackTurn(encounter.getAttackTurn()-1);
+            encounter.removePlayer(target.getAssignedPlayer());
+            if (encounter.getAttacker() == target.getAssignedPlayer() && !encounter.isAttackCompleted())
+                encounter.nextAttacker(false);
+
             player.sendMessage(ChatColor.GREEN + "Removed " + target.getName() + " from their encounter");
         } else if (arguments[0].equalsIgnoreCase("list")) {
             if ( Encounters.getInstance().getEncounterManager().getEncounters().isEmpty()) {

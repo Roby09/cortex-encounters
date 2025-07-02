@@ -87,6 +87,8 @@ public class CastspellCommand implements CommandExecutor, TabExecutor {
             return false;
         }
 
+        encounter.checkLaborDeath(character.getAssignedPlayer(), character.transaction(spell.getLabourCost(), true));
+
         //Roll for success of attack
         RollSpecialtyResult specialtyResult = character.getSpecialtySkills().roll(spell.getSpecialtySkill(), character.getSpecialtySkills().getSpecialtySkill(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentGeneralSkillName(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentAttributeName(spell.getSpecialtySkill()), character);
 

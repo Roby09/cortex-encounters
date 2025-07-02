@@ -13,6 +13,7 @@ import org.cortex.core.player.character.RpCharacter;
 import org.cortex.core.util.RollResult;
 import org.cortex.core.util.RollSpecialtyResult;
 import org.cortex.core.util.RollUtil;
+import org.cortex.core.weapons.CustomArmor;
 import org.cortex.core.weapons.CustomShield;
 import org.cortex.encounters.Encounters;
 import org.cortex.encounters.encounter.Encounter;
@@ -131,6 +132,7 @@ public class ActionMenuListener implements Listener {
                     encounter.getCurrentAttackAction().setDefensiveRoll(rollResult.getResult() + critBonus);
                     EnChatUtil.sendRollDefenseShieldMessage(rpCharacter, rollResult, encounter.getCurrentAttackAction().getDefensiveRoll(), false, encounter.getCurrentAttackAction().isCrit(), encounter.getAllPlayers());
                 }
+                rpCharacter.transaction(customShield.getLabourCost(), true);
                 encounter.completeAttackAction();
                 playersInMenu.remove(player);
                 player.closeInventory();
@@ -153,5 +155,4 @@ public class ActionMenuListener implements Listener {
             }
         }
     }
-
 }

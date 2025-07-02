@@ -16,7 +16,7 @@ public class PlayerRegenAndStarveListener implements Listener {
         if (!(event.getEntity() instanceof Player player))
             return;
         if (Encounters.getInstance().getEncounterManager().isInEncounter(player)) {
-            event.setCancelled(event.getRegainReason() == EntityRegainHealthEvent.RegainReason.REGEN || event.getRegainReason() == EntityRegainHealthEvent.RegainReason.EATING || event.getRegainReason() == EntityRegainHealthEvent.RegainReason.SATIATED);
+            event.setCancelled(true);
         }
     }
 

@@ -84,6 +84,11 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
                 player.sendMessage(ChatColor.RED + target.getName() + " is out of range for this weapon!");
                 return false;
             }
+            /*if (!character.transaction(customWeapon.getLabourCost(), true)) {
+                player.sendMessage(ChatColor.RED + "You do not have enough labor points! You need " + customWeapon.getLabourCost() + " and have " + character.getLaborPoints() + " labor points");
+                return false;
+            }*/
+            encounter.checkLaborDeath(character.getAssignedPlayer(), character.transaction(customWeapon.getLabourCost(), true));
 
             String weaponAttribute = character.getSpecialtySkills().getParentAttributeName(customWeapon.getSpecialtySkill());
 
@@ -136,6 +141,11 @@ public class AttackCommand implements CommandExecutor, TabExecutor {
                 player.sendMessage(ChatColor.RED + target.getName() + " is out of range for this weapon!");
                 return false;
             }
+            /*if (!character.transaction(spell.getLabourCost(), true)) {
+                player.sendMessage(ChatColor.RED + "You do not have enough labor points! You need " + spell.getLabourCost() + " and have " + character.getLaborPoints() + " labor points");
+                return false;
+            }*/
+            encounter.checkLaborDeath(character.getAssignedPlayer(), character.transaction(spell.getLabourCost(), true));
 
             //Roll for success of attack
             RollSpecialtyResult specialtyResult = character.getSpecialtySkills().roll(spell.getSpecialtySkill(), character.getSpecialtySkills().getSpecialtySkill(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentGeneralSkillName(spell.getSpecialtySkill()), character.getSpecialtySkills().getParentAttributeName(spell.getSpecialtySkill()), character);

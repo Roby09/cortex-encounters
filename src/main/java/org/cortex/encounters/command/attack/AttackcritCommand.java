@@ -86,6 +86,12 @@ public class AttackcritCommand implements CommandExecutor, TabExecutor {
                 player.sendMessage(ChatColor.RED + target.getName() + " is out of range for this weapon!");
                 return false;
             }
+            int laborCost = customWeapon.getLabourCost() * 4;
+            /*if (!character.transaction(laborCost, true)) {
+                player.sendMessage(ChatColor.RED + "You do not have enough labor points! You need " + laborCost + " and have " + character.getLaborPoints() + " labor points");
+                return false;
+            }*/
+            encounter.checkLaborDeath(character.getAssignedPlayer(), character.transaction(laborCost, true));
 
             String weaponAttribute = character.getSpecialtySkills().getParentAttributeName(customWeapon.getSpecialtySkill());
 
